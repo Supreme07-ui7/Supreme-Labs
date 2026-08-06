@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function AIChatPage() {
 
@@ -278,7 +280,48 @@ export default function AIChatPage() {
 
               `}>
 
-                {msg.text}
+                <ReactMarkdown
+  remarkPlugins={[remarkGfm]}
+  components={{
+    h1: ({children}) => (
+      <h1 className="text-2xl font-bold mb-4">
+        {children}
+      </h1>
+    ),
+
+    h2: ({children}) => (
+      <h2 className="text-xl font-semibold mb-3">
+        {children}
+      </h2>
+    ),
+
+    p: ({children}) => (
+      <p className="mb-3 leading-7">
+        {children}
+      </p>
+    ),
+
+    ul: ({children}) => (
+      <ul className="list-disc ml-6 mb-4 space-y-2">
+        {children}
+      </ul>
+    ),
+
+    ol: ({children}) => (
+      <ol className="list-decimal ml-6 mb-4 space-y-2">
+        {children}
+      </ol>
+    ),
+
+    code: ({children}) => (
+      <code className="bg-black/40 px-2 py-1 rounded text-blue-300">
+        {children}
+      </code>
+    )
+  }}
+>
+  {msg.text}
+</ReactMarkdown>
 
               </div>
 
