@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -15,417 +15,646 @@ export default function AIChatPage() {
     }
   ]);
 
+  const [loading, setLoading] = useState(false);
+
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+
+  // Auto Scroll
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({
+      behavior: "smooth"
+    });
+  }, [messages]);
+
+
+  // New Chat
+  const newChat = () => {
+
+    setMessages([
+      {
+        role: "ai",
+        text: "New chat started 🚀 How can I help you?"
+      }
+    ]);
+
+    setMessage("");
+
+  };
+
+
 
   const sendMessage = async () => {
 
-  if (!message.trim()) return;
+    if (!message.trim() || loading) return;
 
 
-  const userMessage = message;
+    const userMessage = message;
 
 
-  setMessages((prev)=>[
-    ...prev,
-    {
-      role:"user",
-      text:userMessage
-    },
-    {
-      role:"ai",
-      text:"Thinking..."
-    }
-  ]);
-
-
-  setMessage("");
-
-
-  try {
-
-    const response = await fetch("/api/chat",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
+    setMessages((prev)=>[
+      ...prev,
+      {
+        role:"user",
+        text:userMessage
       },
-      body:JSON.stringify({
-        message:userMessage
-      })
-    });
-
-
-    const data = await response.json();
-
-
-    setMessages((prev)=>{
-
-      const updated = [...prev];
-
-      updated[updated.length-1] = {
+      {
         role:"ai",
-        text:data.reply || "No response"
-      };
+        text:""
+      }
+    ]);
 
-      return updated;
 
-    });
+    setMessage("");
+    setLoading(true);
 
 
-  } catch(error){
 
-    setMessages((prev)=>{
+    try {
 
-      const updated=[...prev];
 
-      updated[updated.length-1]={
-        role:"ai",
-        text:"Sorry, AI connection failed."
-      };
+      const response = await fetch("/api/chat",{
 
-      return updated;
+        method:"POST",
 
-    });
+        headers:{
+          "Content-Type":"application/json",
+        },
 
-  }
+        body:JSON.stringify({
+          message:userMessage
+        })
 
-};
+      });
 
 
-  return (
 
-    <main className="min-h-screen bg-[#09090B] text-white flex">
+      const data = await response.json();
 
 
-      {/* Sidebar */}
 
-      <aside className="
-      hidden md:flex
-      w-72
-      border-r
-      border-white/10
-      flex-col
-      p-5
-      bg-black/20
-      ">
+      setMessages((prev)=>{
 
+        const updated=[...prev];
 
-        <div>
 
-          <h1 className="
-          text-2xl
-          font-bold
-          bg-gradient-to-r
-          from-blue-400
-          to-purple-500
-          text-transparent
-          bg-clip-text
-          ">
-            Supreme Labs
-          </h1>
+        updated[updated.length-1]={
 
+          role:"ai",
 
-          <p className="
-          text-sm
-          text-gray-400
-          mt-2
-          ">
-            AI Workspace
-          </p>
+          text:data.reply || "No response received."
 
-        </div>
+        };
 
 
+        return updated;
 
-        <button className="
-        mt-8
-        rounded-xl
-        bg-white/10
-        hover:bg-white/20
-        py-3
-        transition
-        ">
+      });
 
-          + New Chat
 
-        </button>
 
+    } catch(error){
 
 
-        <div className="
-        mt-8
-        text-sm
-        text-gray-500
-        ">
+      setMessages((prev)=>{
 
-          Recent Chats
+        const updated=[...prev];
 
-        </div>
 
+        updated[updated.length-1]={
 
-        <div className="
-        mt-4
-        space-y-3
-        ">
+          role:"ai",
 
-          <div className="
-          p-3
-          rounded-lg
-          bg-white/5
-          text-sm
-          ">
-            AI Assistant
-          </div>
+          text:"⚠️ Sorry, AI connection failed."
 
+        };
 
-          <div className="
-          p-3
-          rounded-lg
-          bg-white/5
-          text-sm
-          ">
-            Code Helper
-          </div>
 
+        return updated;
 
-        </div>
+      });
 
 
+    } finally {
 
-      </aside>
+      setLoading(false);
 
+    }
 
 
+  };
 
-      {/* Main Chat Area */}
 
-      <section className="
-      flex-1
-      flex
-      flex-col
-      ">
 
+return (
 
+<main className="min-h-screen bg-[#09090B] text-white flex">
 
-        {/* Header */}
 
-        <header className="
-        h-20
-        border-b
-        border-white/10
-        flex
-        items-center
-        px-6
-        ">
+{/* Sidebar */}
 
+<aside
+className="
+hidden md:flex
+w-72
+border-r
+border-white/10
+flex-col
+p-5
+bg-black/20
+">
 
-          <div>
 
-            <h2 className="
-            text-xl
-            font-semibold
-            ">
-              AI Chat Assistant
-            </h2>
+<div>
 
+<h1
+className="
+text-2xl
+font-bold
+bg-gradient-to-r
+from-blue-400
+to-purple-500
+text-transparent
+bg-clip-text
+">
+Supreme Labs
+</h1>
 
-            <p className="
-            text-sm
-            text-gray-400
-            ">
-              Supreme Labs Intelligent Workspace
-            </p>
 
-          </div>
+<p className="
+text-sm
+text-gray-400
+mt-2
+">
+AI Workspace
+</p>
 
 
-        </header>
+</div>
 
 
 
-        {/* Messages Area */}
+<button
 
-        <div className="
-        flex-1
-        overflow-y-auto
-        p-6
-        space-y-5
-        ">
+onClick={newChat}
 
+className="
+mt-8
+rounded-xl
+bg-white/10
+hover:bg-white/20
+py-3
+transition
+">
 
-          {messages.map((msg,index)=>(
++ New Chat
 
-            <div
-            key={index}
-            className={`
-            flex
-            ${msg.role==="user"
-            ?"justify-end"
-            :"justify-start"}
-            `}
-            >
+</button>
 
 
-              <div className={`
-              max-w-xl
-              px-5
-              py-3
-              rounded-2xl
 
-              ${
-                msg.role==="user"
-                ?
-                "bg-blue-600"
-                :
-                "bg-white/10 border border-white/10"
-              }
+<div className="
+mt-8
+text-sm
+text-gray-500
+">
 
-              `}>
+Recent Chats
 
-                <ReactMarkdown
-  remarkPlugins={[remarkGfm]}
-  components={{
-    h1: ({children}) => (
-      <h1 className="text-2xl font-bold mb-4">
-        {children}
-      </h1>
-    ),
+</div>
 
-    h2: ({children}) => (
-      <h2 className="text-xl font-semibold mb-3">
-        {children}
-      </h2>
-    ),
 
-    p: ({children}) => (
-      <p className="mb-3 leading-7">
-        {children}
-      </p>
-    ),
 
-    ul: ({children}) => (
-      <ul className="list-disc ml-6 mb-4 space-y-2">
-        {children}
-      </ul>
-    ),
+<div className="
+mt-4
+space-y-3
+">
 
-    ol: ({children}) => (
-      <ol className="list-decimal ml-6 mb-4 space-y-2">
-        {children}
-      </ol>
-    ),
 
-    code: ({children}) => (
-      <code className="bg-black/40 px-2 py-1 rounded text-blue-300">
-        {children}
-      </code>
-    )
-  }}
+<div className="
+p-3
+rounded-lg
+bg-white/5
+text-sm
+">
+
+AI Assistant
+
+</div>
+
+
+
+<div className="
+p-3
+rounded-lg
+bg-white/5
+text-sm
+">
+
+Code Helper
+
+</div>
+
+
+</div>
+
+
+</aside>
+
+
+
+
+
+{/* Main Chat Area */}
+
+<section className="
+flex-1
+flex
+flex-col
+">
+
+
+{/* Header */}
+
+<header className="
+h-20
+border-b
+border-white/10
+flex
+items-center
+px-6
+">
+
+
+<div>
+
+<h2 className="
+text-xl
+font-semibold
+">
+AI Chat Assistant
+</h2>
+
+
+<p className="
+text-sm
+text-gray-400
+">
+Supreme Labs Intelligent Workspace
+</p>
+
+
+</div>
+
+
+</header>
+{/* Messages Area */}
+
+<div
+className="
+flex-1
+overflow-y-auto
+p-6
+space-y-5
+"
 >
-  {msg.text}
+
+
+{messages.map((msg,index)=>(
+
+<div
+key={index}
+className={`
+flex
+gap-3
+items-start
+${msg.role==="user"
+?"justify-end"
+:"justify-start"}
+`}
+>
+
+
+{/* AI Avatar */}
+
+{msg.role==="ai" && (
+
+<div
+className="
+w-9
+h-9
+rounded-full
+bg-gradient-to-r
+from-blue-500
+to-purple-500
+flex
+items-center
+justify-center
+text-sm
+"
+>
+🤖
+</div>
+
+)}
+
+
+
+<div
+className={`
+max-w-xl
+px-5
+py-3
+rounded-2xl
+leading-7
+
+${
+msg.role==="user"
+?
+"bg-blue-600"
+:
+"bg-white/10 border border-white/10"
+}
+
+`}
+>
+
+
+<ReactMarkdown
+
+remarkPlugins={[remarkGfm]}
+
+components={{
+
+h1:({children})=>(
+
+<h1 className="
+text-2xl
+font-bold
+mb-4
+">
+
+{children}
+
+</h1>
+
+),
+
+
+h2:({children})=>(
+
+<h2 className="
+text-xl
+font-semibold
+mb-3
+">
+
+{children}
+
+</h2>
+
+),
+
+
+p:({children})=>(
+
+<p className="
+mb-3
+leading-7
+">
+
+{children}
+
+</p>
+
+),
+
+
+ul:({children})=>(
+
+<ul className="
+list-disc
+ml-6
+mb-4
+space-y-2
+">
+
+{children}
+
+</ul>
+
+),
+
+
+ol:({children})=>(
+
+<ol className="
+list-decimal
+ml-6
+mb-4
+space-y-2
+">
+
+{children}
+
+</ol>
+
+),
+
+
+code:({children})=>(
+
+<code className="
+bg-black/40
+px-2
+py-1
+rounded
+text-blue-300
+">
+
+{String(children)}
+
+</code>
+
+)
+
+}}
+
+>
+
+
+{
+  msg.text ? (
+    <span>{msg.text}</span>
+  ) : (
+    <span className="animate-pulse">
+      Thinking...
+    </span>
+  )
+}
 </ReactMarkdown>
 
-              </div>
 
-
-            </div>
-
-          ))}
+</div>
 
 
 
-        </div>
-        {/* Input Area */}
 
-        <div className="
-        border-t
-        border-white/10
-        p-5
-        bg-black/20
-        ">
+{/* User Avatar */}
 
+{msg.role==="user" && (
 
-          <div className="
-          max-w-4xl
-          mx-auto
-          flex
-          gap-3
-          ">
+<div
+className="
+w-9
+h-9
+rounded-full
+bg-blue-600
+flex
+items-center
+justify-center
+text-sm
+"
+>
+👤
+</div>
 
-
-            <input
-
-            value={message}
-
-            onChange={(e)=>setMessage(e.target.value)}
-
-            onKeyDown={(e)=>{
-              if(e.key==="Enter"){
-                sendMessage();
-              }
-            }}
-
-            placeholder="Message Supreme Labs AI..."
-
-            className="
-            flex-1
-            bg-white/5
-            border
-            border-white/10
-            rounded-2xl
-            px-5
-            py-4
-            outline-none
-            focus:border-blue-500
-            transition
-            "
-
-            />
+)}
 
 
 
-            <button
+</div>
 
-            onClick={sendMessage}
 
-            className="
-            px-6
-            rounded-2xl
-            bg-blue-600
-            hover:bg-blue-500
-            transition
-            font-medium
-            "
+))}
 
-            >
 
-              Send
+<div ref={chatEndRef}/>
 
-            </button>
+
+</div>
 
 
 
-          </div>
+
+
+{/* Input Area */}
+
+
+<div
+className="
+border-t
+border-white/10
+p-5
+bg-black/20
+"
+>
+
+
+<div
+className="
+max-w-4xl
+mx-auto
+flex
+gap-3
+"
+>
+
+
+<input
+
+value={message}
+
+onChange={(e)=>setMessage(e.target.value)}
+
+onKeyDown={(e)=>{
+
+if(e.key==="Enter"){
+
+sendMessage();
+
+}
+
+}}
+
+
+placeholder="Message Supreme Labs AI..."
+
+
+className="
+flex-1
+bg-white/5
+border
+border-white/10
+rounded-2xl
+px-5
+py-4
+outline-none
+focus:border-blue-500
+transition
+"
 
 
 
-          <p className="
-          text-center
-          text-xs
-          text-gray-500
-          mt-3
-          ">
-            Supreme Labs AI can make mistakes. Check important information.
-          </p>
-
-
-        </div>
+/>
 
 
 
-      </section>
+<button
+
+onClick={sendMessage}
+
+disabled={loading}
+
+className="
+px-6
+rounded-2xl
+bg-blue-600
+hover:bg-blue-500
+disabled:opacity-50
+transition
+font-medium
+"
+
+>
 
 
-    </main>
+{loading ? "Wait..." : "Send"}
 
-  );
+
+</button>
+
+
+
+</div>
+
+
+
+<p
+className="
+text-center
+text-xs
+text-gray-500
+mt-3
+"
+>
+
+Supreme Labs AI can make mistakes. Check important information.
+
+</p>
+
+
+</div>
+
+
+
+</section>
+
+
+
+</main>
+
+
+);
 
 }
