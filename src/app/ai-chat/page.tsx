@@ -412,10 +412,10 @@ export default function AIChatPage() {
                   >
 
                     {/* ==================================
-                        AI AVATAR
+                        AVATAR
                     ================================== */}
 
-                    {!isUser && (
+                    {!isUser ? (
                       <div
                         className="
                           shrink-0
@@ -430,9 +430,34 @@ export default function AIChatPage() {
                           justify-center
                           text-lg
                           shadow-lg
+                          mt-5
                         "
+                        aria-label="Supreme Labs AI"
                       >
                         🤖
+                      </div>
+                    ) : (
+                      <div
+                        className="
+                          shrink-0
+                          w-9
+                          h-9
+                          rounded-xl
+                          bg-blue-600
+                          border
+                          border-blue-400/30
+                          flex
+                          items-center
+                          justify-center
+                          text-sm
+                          font-semibold
+                          shadow-lg
+                          mt-5
+                          order-2
+                        "
+                        aria-label="You"
+                      >
+                        You
                       </div>
                     )}
 
@@ -442,8 +467,9 @@ export default function AIChatPage() {
 
                     <div
                       className={`
-                        max-w-[85%]
-                        md:max-w-[75%]
+                        max-w-[88%]
+                        md:max-w-[78%]
+                        min-w-0
                         ${
                           isUser
                             ? "items-end"
@@ -482,13 +508,17 @@ export default function AIChatPage() {
                                 bg-white
                                 text-black
                                 rounded-br-md
+                                shadow-sm
+                                shadow-black/20
                               `
                               : `
-                                bg-white/[0.04]
+                                bg-white/[0.045]
                                 border
-                                border-white/[0.07]
+                                border-white/[0.08]
                                 text-white/90
                                 rounded-bl-md
+                                shadow-lg
+                                shadow-black/10
                               `
                           }
                         `}
