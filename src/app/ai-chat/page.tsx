@@ -25,6 +25,8 @@ export default function AIChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const requestIdRef = useRef(0);
 
   // --------------------------------
   // Safe text converter
@@ -59,9 +61,62 @@ export default function AIChatPage() {
   }, [messages]);
 
   // --------------------------------
+  // Typing Animation
+  // --------------------------------
+  const typeReply = (reply: string) => {
+    return new Promise<void>((resolve) => {
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+
+      if (!reply) {
+        resolve();
+        return;
+      }
+
+      let currentText = "";
+      let characterIndex = 0;
+
+      typingIntervalRef.current = setInterval(() => {
+        currentText += reply[characterIndex];
+        characterIndex += 1;
+
+        setMessages((prev) => {
+          const updated = [...prev];
+
+          if (updated.length > 0) {
+            updated[updated.length - 1] = {
+              role: "ai",
+              text: currentText,
+            };
+          }
+
+          return updated;
+        });
+
+        if (characterIndex >= reply.length) {
+          if (typingIntervalRef.current) {
+            clearInterval(typingIntervalRef.current);
+            typingIntervalRef.current = null;
+          }
+
+          resolve();
+        }
+      }, 18);
+    });
+  };
+
+  // --------------------------------
   // New Chat
   // --------------------------------
   const newChat = () => {
+    requestIdRef.current += 1;
+
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
+
     setMessages([
       {
         role: "ai",
@@ -74,12 +129,25 @@ export default function AIChatPage() {
   };
 
   // --------------------------------
+  // Cleanup typing animation
+  // --------------------------------
+  useEffect(() => {
+    return () => {
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // --------------------------------
   // Send Message
   // --------------------------------
   const sendMessage = async () => {
     if (!message.trim() || loading) return;
 
     const userMessage = message.trim();
+    const currentRequestId = requestIdRef.current + 1;
+    requestIdRef.current = currentRequestId;
 
     setMessages((prev) => [
       ...prev,
@@ -109,32 +177,64 @@ export default function AIChatPage() {
 
       const data = await response.json();
 
+      if (requestIdRef.current !== currentRequestId) {
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.error || "AI response failed");
+      }
+
       const safeReply = makeSafeText(data?.reply);
 
-      setMessages((prev) => {
-        const updated = [...prev];
+      if (!safeReply) {
+        setMessages((prev) => {
+          const updated = [...prev];
 
-        updated[updated.length - 1] = {
-          role: "ai",
-          text: safeReply || "No response received.",
-        };
+          if (updated.length > 0) {
+            updated[updated.length - 1] = {
+              role: "ai",
+              text: "No response received.",
+            };
+          }
 
-        return updated;
-      });
+          return updated;
+        });
+
+        setLoading(false);
+        return;
+      }
+
+      await typeReply(safeReply);
+
+      if (requestIdRef.current === currentRequestId) {
+        setLoading(false);
+      }
     } catch (error) {
       console.error("AI Chat Error:", error);
 
+      if (requestIdRef.current !== currentRequestId) {
+        return;
+      }
+
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+        typingIntervalRef.current = null;
+      }
+
       setMessages((prev) => {
         const updated = [...prev];
 
-        updated[updated.length - 1] = {
-          role: "ai",
-          text: "⚠️ Sorry, AI connection failed.",
-        };
+        if (updated.length > 0) {
+          updated[updated.length - 1] = {
+            role: "ai",
+            text: "⚠️ Sorry, AI connection failed.",
+          };
+        }
 
         return updated;
       });
-    } finally {
+
       setLoading(false);
     }
   };
