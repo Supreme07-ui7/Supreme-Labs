@@ -8,7 +8,11 @@ type Message = {
   role: "ai" | "user";
   text: string;
 };
-
+type CodeBlockProps = {
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+};
 export default function AIChatPage() {
   const [message, setMessage] = useState("");
 
@@ -20,7 +24,7 @@ export default function AIChatPage() {
   ]);
 
   const [loading, setLoading] = useState(false);
-
+const [copiedCode, setCopiedCode] = useState<string | null>(null);
   // Sidebar open / close
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -138,7 +142,22 @@ export default function AIChatPage() {
       }
     };
   }, []);
+// --------------------------------
+// Copy Code
+// --------------------------------
+const copyCode = async (code: string) => {
+  try {
+    await navigator.clipboard.writeText(code);
 
+    setCopiedCode(code);
+
+    setTimeout(() => {
+      setCopiedCode(null);
+    }, 2000);
+  } catch (error) {
+    console.error("Copy failed:", error);
+  }
+};
   // --------------------------------
   // Send Message
   // --------------------------------
@@ -652,10 +671,111 @@ export default function AIChatPage() {
                               "
                             >
                               <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                              >
-                                {msg.text}
-                              </ReactMarkdown>
+  remarkPlugins={[remarkGfm]}
+  components={{
+    code({
+      inline,
+      className,
+      children,
+      ...props
+    }: CodeBlockProps) {
+      const match = /language-(\w+)/.exec(className || "");
+      const language = match?.[1]?.toUpperCase() || "CODE";
+
+      const code = String(children).replace(/\n$/, "");
+
+      if (inline) {
+        return (
+          <code
+            className="
+              rounded-md
+              bg-white/10
+              px-1.5
+              py-0.5
+              text-[0.9em]
+              text-white
+              border
+              border-white/10
+            "
+            {...props}
+          >
+            {children}
+          </code>
+        );
+      }
+
+      return (
+        <div className="my-5 overflow-hidden rounded-xl border border-white/10 bg-[#0B0B0F] shadow-xl shadow-black/20">
+
+          {/* Code Header */}
+          <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-4 py-2.5">
+
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                {language}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => copyCode(code)}
+              className="
+                flex
+                items-center
+                gap-1.5
+                rounded-lg
+                border
+                border-white/10
+                bg-white/[0.04]
+                px-2.5
+                py-1.5
+                text-[11px]
+                font-medium
+                text-white/55
+                transition
+                hover:bg-white/10
+                hover:text-white
+                active:scale-95
+              "
+            >
+              {copiedCode === code ? (
+                <>
+                  <span className="text-green-400">✓</span>
+                  Copied
+                </>
+              ) : (
+                <>
+                  <span>📋</span>
+                  Copy
+                </>
+              )}
+            </button>
+
+          </div>
+
+          {/* Code Content */}
+          <pre
+            className="
+              overflow-x-auto
+              p-4
+              text-[13px]
+              leading-6
+              text-white/90
+              md:text-sm
+            "
+          >
+            <code className={className} {...props}>
+              {children}
+            </code>
+          </pre>
+
+        </div>
+      );
+    },
+  }}
+>
+  {msg.text}
+</ReactMarkdown>
                             </div>
                           ) : (
                             /* ==========================
