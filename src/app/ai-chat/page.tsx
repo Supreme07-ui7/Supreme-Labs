@@ -8,6 +8,12 @@ type Message = {
   role: "ai" | "user";
   text: string;
 };
+type ChatHistory = {
+  id: string;
+  title: string;
+  messages: Message[];
+  updatedAt: number;
+};
 type CodeBlockProps = {
   inline?: boolean;
   className?: string;
@@ -24,6 +30,8 @@ export default function AIChatPage() {
   ]);
 
   const [loading, setLoading] = useState(false);
+const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
+const [activeChatId, setActiveChatId] = useState<string | null>(null);
 const [copiedCode, setCopiedCode] = useState<string | null>(null);
   // Sidebar open / close
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -31,6 +39,9 @@ const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const requestIdRef = useRef(0);
+const createChatId = () => {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+};
 
   // --------------------------------
   // Safe text converter
@@ -58,6 +69,24 @@ const [copiedCode, setCopiedCode] = useState<string | null>(null);
   // --------------------------------
   // Auto Scroll
   // --------------------------------
+// --------------------------------
+// Load Chat History
+// --------------------------------
+useEffect(() => {
+  try {
+    const savedHistory = localStorage.getItem("supreme-labs-chat-history");
+
+    if (savedHistory) {
+      const parsedHistory = JSON.parse(savedHistory);
+
+      if (Array.isArray(parsedHistory)) {
+        setChatHistory(parsedHistory);
+      }
+    }
+  } catch (error) {
+    console.error("Failed to load chat history:", error);
+  }
+}, []);
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -109,7 +138,68 @@ const [copiedCode, setCopiedCode] = useState<string | null>(null);
       }, 18);
     });
   };
+// --------------------------------
+// Save Chat History
+// --------------------------------
+const saveChatHistory = (
+  chatId: string,
+  chatMessages: Message[]
+) => {
+  const userMessages = chatMessages.filter(
+    (msg) => msg.role === "user"
+  );
 
+  if (userMessages.length === 0) return;
+
+  const firstMessage = userMessages[0].text.trim();
+
+  const title =
+    firstMessage.length > 32
+      ? `${firstMessage.slice(0, 32)}...`
+      : firstMessage;
+
+  setChatHistory((prev) => {
+    const existingChat = prev.find(
+      (chat) => chat.id === chatId
+    );
+
+    let updatedHistory: ChatHistory[];
+
+    if (existingChat) {
+      updatedHistory = prev.map((chat) =>
+        chat.id === chatId
+          ? {
+              ...chat,
+              title,
+              messages: chatMessages,
+              updatedAt: Date.now(),
+            }
+          : chat
+      );
+    } else {
+      updatedHistory = [
+        {
+          id: chatId,
+          title,
+          messages: chatMessages,
+          updatedAt: Date.now(),
+        },
+        ...prev,
+      ];
+    }
+
+    updatedHistory.sort(
+      (a, b) => b.updatedAt - a.updatedAt
+    );
+
+    localStorage.setItem(
+      "supreme-labs-chat-history",
+      JSON.stringify(updatedHistory)
+    );
+
+    return updatedHistory;
+  });
+};
   // --------------------------------
   // New Chat
   // --------------------------------
@@ -164,7 +254,15 @@ const copyCode = async (code: string) => {
   const sendMessage = async () => {
     if (!message.trim() || loading) return;
 
+    
+    
     const userMessage = message.trim();
+
+const chatId = activeChatId || createChatId();
+
+if (!activeChatId) {
+  setActiveChatId(chatId);
+}
     const currentRequestId = requestIdRef.current + 1;
     requestIdRef.current = currentRequestId;
 
@@ -226,9 +324,18 @@ const copyCode = async (code: string) => {
 
       await typeReply(safeReply);
 
-      if (requestIdRef.current === currentRequestId) {
-        setLoading(false);
-      }
+if (requestIdRef.current === currentRequestId) {
+  setLoading(false);
+
+  setMessages((currentMessages) => {
+    saveChatHistory(
+      chatId,
+      currentMessages
+    );
+
+    return currentMessages;
+  });
+}
     } catch (error) {
       console.error("AI Chat Error:", error);
 
@@ -333,69 +440,70 @@ const copyCode = async (code: string) => {
         </div>
 
         {/* Recent Chats */}
-        <div className="px-4">
-          <p className="text-[11px] uppercase tracking-wider text-white/35 px-2 mb-3">
-            Recent Chats
-          </p>
+<div className="px-4">
+  <p className="text-[11px] uppercase tracking-wider text-white/35 px-2 mb-3">
+    Recent Chats
+  </p>
 
-          <div className="space-y-1">
-            <button
-              className="
-                w-full
-                text-left
-                rounded-xl
-                px-3
-                py-3
-                bg-white/5
-                hover:bg-white/10
-                transition
-                text-sm
-              "
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-base">🤖</span>
+  <div className="space-y-1 max-h-[55vh] overflow-y-auto pr-1">
 
-                <div className="min-w-0">
-                  <p className="truncate">
-                    AI Assistant
-                  </p>
+    {chatHistory.length === 0 ? (
+      <div className="px-3 py-4 rounded-xl bg-white/[0.03] border border-white/5">
+        <p className="text-xs text-white/35">
+          No recent chats yet.
+        </p>
 
-                  <p className="text-[11px] text-white/35 mt-0.5">
-                    Current conversation
-                  </p>
-                </div>
-              </div>
-            </button>
+        <p className="text-[11px] text-white/20 mt-1">
+          Start a conversation to create chat history.
+        </p>
+      </div>
+    ) : (
+      chatHistory.map((chat) => (
+        <button
+          key={chat.id}
+          onClick={() => {
+            setActiveChatId(chat.id);
+            setMessages(chat.messages);
+            setMessage("");
+            setLoading(false);
+          }}
+          className={`
+            w-full
+            text-left
+            rounded-xl
+            px-3
+            py-3
+            transition
+            ${
+              activeChatId === chat.id
+                ? "bg-white/10 border border-white/10"
+                : "hover:bg-white/5 border border-transparent"
+            }
+          `}
+        >
+          <div className="flex items-center gap-3">
 
-            <button
-              className="
-                w-full
-                text-left
-                rounded-xl
-                px-3
-                py-3
-                hover:bg-white/5
-                transition
-                text-sm
-              "
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-base">💻</span>
+            <span className="text-base shrink-0">
+              💬
+            </span>
 
-                <div className="min-w-0">
-                  <p className="truncate">
-                    Code Helper
-                  </p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm">
+                {chat.title}
+              </p>
 
-                  <p className="text-[11px] text-white/35 mt-0.5">
-                    Previous chat
-                  </p>
-                </div>
-              </div>
-            </button>
+              <p className="text-[11px] text-white/30 mt-0.5">
+                {new Date(chat.updatedAt).toLocaleDateString()}
+              </p>
+            </div>
+
           </div>
-        </div>
+        </button>
+      ))
+    )}
 
+  </div>
+</div>
         {/* Sidebar Bottom */}
         <div className="mt-auto p-4 border-t border-white/10">
           <div className="rounded-xl bg-white/5 border border-white/5 p-3">
