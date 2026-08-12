@@ -254,8 +254,8 @@ const copyCode = async (code: string) => {
   const sendMessage = async () => {
     if (!message.trim() || loading) return;
 
-    
-    
+   
+   
     const userMessage = message.trim();
 
 const chatId = activeChatId || createChatId();
@@ -370,7 +370,7 @@ if (requestIdRef.current === currentRequestId) {
   // --------------------------------
   return (
     <main className="min-h-screen bg-[#09090B] text-white flex overflow-hidden">
-      
+     
       {/* ========================================
           SIDEBAR
       ======================================== */}
@@ -608,7 +608,7 @@ if (requestIdRef.current === currentRequestId) {
             PART 2 STARTS HERE
         ======================================== */}
 
-        {/* 
+        {/*
           IMPORTANT:
           Part 2 yahan se continue hoga.
         */}
@@ -779,117 +779,59 @@ if (requestIdRef.current === currentRequestId) {
                               "
                             >
                               <ReactMarkdown
-  remarkPlugins={[remarkGfm]}
-  components={{
-    code({
-      inline,
-      className,
-      children,
-      ...props
-    }: CodeBlockProps) {
-      const match = /language-(\w+)/.exec(className || "");
-      const language = match?.[1]?.toUpperCase() || "CODE";
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  code({
+                                    inline,
+                                    className,
+                                    children,
+                                    ...props
+                                  }: CodeBlockProps) {
+                                    const match = /language-(\w+)/.exec(className || "");
+                                    const language = match?.[1]?.toUpperCase() || "CODE";
+                                    const codeText = String(children).replace(/\n$/, "");
 
-      const code = String(children).replace(/\n$/, "");
+                                    if (inline) {
+                                      return (
+                                        <code
+                                          className="rounded bg-white/10 px-1.5 py-0.5 text-sm"
+                                          {...props}
+                                        >
+                                          {children}
+                                        </code>
+                                      );
+                                    }
 
-      if (inline) {
-        return (
-          <code
-            className="
-              rounded-md
-              bg-white/10
-              px-1.5
-              py-0.5
-              text-[0.9em]
-              text-white
-              border
-              border-white/10
-            "
-            {...props}
-          >
-            {children}
-          </code>
-        );
-      }
+                                    return (
+                                      <div className="my-4 overflow-hidden rounded-xl border border-white/10 bg-black/40">
+                                        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
+                                          <span className="text-xs font-medium text-white/60">
+                                            {language}
+                                          </span>
 
-      return (
-        <div className="my-5 overflow-hidden rounded-xl border border-white/10 bg-[#0B0B0F] shadow-xl shadow-black/20">
+                                          <button
+                                            type="button"
+                                            onClick={() => copyCode(codeText)}
+                                            className="rounded-md px-3 py-1 text-xs text-white/70 transition hover:bg-white/10 hover:text-white"
+                                          >
+                                            {copiedCode === codeText ? "✓ Copied" : "Copy"}
+                                          </button>
+                                        </div>
 
-          {/* Code Header */}
-          <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-4 py-2.5">
-
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
-                {language}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => copyCode(code)}
-              className="
-                flex
-                items-center
-                gap-1.5
-                rounded-lg
-                border
-                border-white/10
-                bg-white/[0.04]
-                px-2.5
-                py-1.5
-                text-[11px]
-                font-medium
-                text-white/55
-                transition
-                hover:bg-white/10
-                hover:text-white
-                active:scale-95
-              "
-            >
-              {copiedCode === code ? (
-                <>
-                  <span className="text-green-400">✓</span>
-                  Copied
-                </>
-              ) : (
-                <>
-                  <span>📋</span>
-                  Copy
-                </>
-              )}
-            </button>
-
-          </div>
-
-          {/* Code Content */}
-          <pre
-            className="
-              overflow-x-auto
-              p-4
-              text-[13px]
-              leading-6
-              text-white/90
-              md:text-sm
-            "
-          >
-            <code className={className} {...props}>
-              {children}
-            </code>
-          </pre>
-
-        </div>
-      );
-    },
-  }}
->
-  {msg.text}
-</ReactMarkdown>
+                                        <pre className="overflow-x-auto p-4 text-sm leading-6">
+                                          <code className={className} {...props}>
+                                            {children}
+                                          </code>
+                                        </pre>
+                                      </div>
+                                    );
+                                  },
+                                }}
+                              >
+                                {msg.text}
+                              </ReactMarkdown>
                             </div>
                           ) : (
-                            /* ==========================
-                               THINKING STATE
-                            ========================== */
-
                             loading &&
                             isLastMessage && (
                               <div className="flex items-center gap-2 text-white/50">
@@ -904,11 +846,9 @@ if (requestIdRef.current === currentRequestId) {
                             )
                           )
                         ) : (
-
                           /* ============================
                              USER MESSAGE
                           ============================ */
-
                           <div className="whitespace-pre-wrap break-words">
                             {msg.text}
                           </div>
