@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Supreme AI Hub",
+  title: "Supreme Labs",
   description:
     "The world's most powerful AI platform for Chat, Image, Video, Code, Voice, PDF, and Productivity.",
   keywords: [
@@ -22,12 +22,12 @@ export const metadata: Metadata = {
     "AI Video",
     "AI Code Assistant",
     "AI Tools",
-    "Supreme AI Hub",
+    "Supreme Labs",
   ],
-  authors: [{ name: "Supreme AI Hub" }],
-  creator: "Supreme AI Hub",
+  authors: [{ name: "Supreme Labs" }],
+  creator: "Supreme Labs",
   openGraph: {
-    title: "Supreme AI Hub",
+    title: "Supreme Labs",
     description:
       "One powerful AI platform for Chat, Image, Video, Code, Voice, PDF and Productivity.",
     type: "website",
