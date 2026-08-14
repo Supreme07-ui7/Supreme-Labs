@@ -31,10 +31,15 @@ export default function Home() {
           </a>
         </div>
 
-        <button className="rounded-xl border border-blue-500 px-5 py-2 transition hover:bg-blue-600">
-          Login
-        </button>
-      </nav>
+        <Link
+  href="/login"
+  className="rounded-xl border border-blue-500 px-5 py-2 transition hover:bg-blue-600"
+>
+  Login
+</Link>
+</nav>
+
+{/* Hero Section */}
 
       {/* Hero Section */}
       <section className="mx-auto flex min-h-[75vh] max-w-5xl flex-col items-center justify-center px-6 text-center">

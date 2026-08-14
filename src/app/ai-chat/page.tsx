@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -20,6 +22,24 @@ type CodeBlockProps = {
   children?: React.ReactNode;
 };
 export default function AIChatPage() {
+const router = useRouter();
+  // --------------------------------
+  // Logout
+  // --------------------------------
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error("Logout failed:", error);
+        return;
+      }
+
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
   const [message, setMessage] = useState("");
 
   const [messages, setMessages] = useState<Message[]>([
@@ -72,6 +92,22 @@ const createChatId = () => {
 // --------------------------------
 // Load Chat History
 // --------------------------------
+// --------------------------------
+// Protect AI Chat
+// --------------------------------
+useEffect(() => {
+  const checkUser = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.replace("/login");
+    }
+  };
+
+  checkUser();
+}, [router]);
 useEffect(() => {
   try {
     const savedHistory = localStorage.getItem("supreme-labs-chat-history");
@@ -516,6 +552,29 @@ if (requestIdRef.current === currentRequestId) {
             </p>
           </div>
         </div>
+        {/* Logout */}
+<div className="mt-auto p-4 border-t border-white/10">
+  <button
+  onClick={handleLogout}
+    className="
+      w-full
+      flex
+      items-center
+      gap-3
+      rounded-xl
+      px-4
+      py-3
+      text-sm
+      text-white/60
+      hover:text-white
+      hover:bg-red-500/10
+      transition
+    "
+  >
+    <span className="text-lg">↪</span>
+    <span>Logout</span>
+  </button>
+</div>
       </aside>
 
       {/* ========================================
