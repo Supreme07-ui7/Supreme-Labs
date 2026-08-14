@@ -1,9 +1,4 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
 
 export async function POST(req: Request) {
   try {
@@ -16,6 +11,19 @@ export async function POST(req: Request) {
         },
         {
           status: 400,
+        }
+      );
+    }
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error: "OPENROUTER_API_KEY is not configured.",
+        },
+        {
+          status: 500,
         }
       );
     }
@@ -61,7 +69,7 @@ export async function POST(req: Request) {
       '- If the user asks "What day is today?", answer using the provided current date.',
       '- If the user asks "What is today\'s date?", answer using the provided current date.',
       '- If the user asks "What time is it?", answer using the provided current time.',
-      '- For relative date questions such as tomorrow or yesterday, calculate them from the provided current date.',
+      "- For relative date questions such as tomorrow or yesterday, calculate them from the provided current date.",
       "",
       "YOUR ROLE:",
       "",
@@ -76,29 +84,55 @@ export async function POST(req: Request) {
       "You are representing Supreme Labs, so maintain this identity consistently throughout the conversation.",
     ].join("\n");
 
-    const completion = await groq.chat.completions.create({
-      messages: [
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt,
+            },
+            {
+              role: "user",
+              content: message,
+            },
+          ],
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("OpenRouter API Error:", data);
+
+      return NextResponse.json(
         {
-          role: "system",
-          content: systemPrompt,
+          error: "OpenRouter API request failed.",
+          details: data,
         },
         {
-          role: "user",
-          content: message,
-        },
-      ],
-      model: "llama-3.3-70b-versatile",
-    });
+          status: response.status,
+        }
+      );
+    }
 
     const reply =
-      completion.choices[0]?.message?.content ||
+      data.choices?.[0]?.message?.content ||
       "Sorry, I couldn't generate a response.";
 
     return NextResponse.json({
       reply,
     });
   } catch (error) {
-    console.error("Groq API Error:", error);
+    console.error("OpenRouter Chat Error:", error);
 
     return NextResponse.json(
       {
