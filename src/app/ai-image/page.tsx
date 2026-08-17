@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function AIImagePage() {
   const [prompt, setPrompt] = useState("");
@@ -9,6 +10,18 @@ const [aspectRatio, setAspectRatio] = useState("1:1");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  type GalleryImage = {
+  id: string;
+  user_id: string;
+  image_url: string;
+  prompt: string;
+  style: string;
+  aspect_ratio: string;
+  created_at: string;
+};
+
+const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+const [galleryLoading, setGalleryLoading] = useState(false);
 
   // Clean up generated object URL
   useEffect(() => {
@@ -18,8 +31,16 @@ const [aspectRatio, setAspectRatio] = useState("1:1");
       }
     };
   }, [imageUrl]);
+// Gallery states
 
-  const generateImage = async () => {
+
+
+// Gallery function
+const loadGallery = async () => {
+  // ...
+};
+
+const generateImage = async () => {
   const trimmedPrompt = prompt.trim();
 
   if (!trimmedPrompt || loading) {
@@ -73,7 +94,54 @@ const [aspectRatio, setAspectRatio] = useState("1:1");
 
     const generatedImageUrl = URL.createObjectURL(blob);
 
-    setImageUrl(generatedImageUrl);
+setImageUrl(generatedImageUrl);
+
+// Save generated image to Supabase Gallery
+try {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error(
+      "Please sign in to save images to your gallery."
+    );
+  }
+
+  const fileName = `${crypto.randomUUID()}.jpg`;
+  const filePath = `${user.id}/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("generated-images")
+    .upload(filePath, blob, {
+      contentType: blob.type || "image/jpeg",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { error: databaseError } = await supabase
+    .from("generated_images")
+    .insert({
+      user_id: user.id,
+      image_url: filePath,
+      prompt: trimmedPrompt,
+      style,
+      aspect_ratio: aspectRatio,
+    });
+
+  if (databaseError) {
+    throw databaseError;
+  }
+} catch (saveError) {
+  console.error("Gallery save error:", saveError);
+
+  setError(
+    "Image generated successfully, but it could not be saved to your gallery."
+  );
+}
   } catch (error) {
     console.error("Image generation error:", error);
 
