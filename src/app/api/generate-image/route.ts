@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { prompt } = await req.json();
+    const {
+      prompt,
+      style = "Realistic",
+      aspectRatio = "1:1",
+    } = await req.json();
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
@@ -24,11 +28,51 @@ export async function POST(req: Request) {
       );
     }
 
-    const encodedPrompt = encodeURIComponent(prompt.trim());
+    const aspectRatios: Record<
+      string,
+      { width: number; height: number }
+    > = {
+      "1:1": {
+        width: 1024,
+        height: 1024,
+      },
+      "16:9": {
+        width: 1280,
+        height: 720,
+      },
+      "9:16": {
+        width: 720,
+        height: 1280,
+      },
+    };
+
+    const dimensions =
+      aspectRatios[aspectRatio] || aspectRatios["1:1"];
+
+    const stylePrompts: Record<string, string> = {
+      Realistic:
+        "photorealistic, realistic details, natural lighting",
+      Cinematic:
+        "cinematic photography, dramatic lighting, film still, atmospheric",
+      Anime:
+        "high-quality anime art, detailed anime style, vibrant illustration",
+      "3D":
+        "premium 3D render, realistic materials, detailed 3D graphics",
+      Illustration:
+        "beautiful digital illustration, artistic composition, detailed artwork",
+    };
+
+    const selectedStyle =
+      stylePrompts[style] || stylePrompts.Realistic;
+
+    const finalPrompt =
+      `${prompt.trim()}, ${selectedStyle}`;
+
+    const encodedPrompt = encodeURIComponent(finalPrompt);
 
     const imageUrl =
       `https://gen.pollinations.ai/image/${encodedPrompt}` +
-      `?model=flux&width=1024&height=1024`;
+      `?model=flux&width=${dimensions.width}&height=${dimensions.height}`;
 
     const response = await fetch(imageUrl, {
       method: "GET",

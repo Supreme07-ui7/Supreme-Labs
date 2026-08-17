@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 export default function AIImagePage() {
   const [prompt, setPrompt] = useState("");
+  const [style, setStyle] = useState("Realistic");
+const [aspectRatio, setAspectRatio] = useState("1:1");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -18,69 +20,72 @@ export default function AIImagePage() {
   }, [imageUrl]);
 
   const generateImage = async () => {
-    const trimmedPrompt = prompt.trim();
+  const trimmedPrompt = prompt.trim();
 
-    if (!trimmedPrompt || loading) {
-      return;
-    }
+  if (!trimmedPrompt || loading) {
+    return;
+  }
 
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setError("");
 
-    // Remove previous image before generating a new one
-    if (imageUrl) {
-      URL.revokeObjectURL(imageUrl);
-      setImageUrl(null);
-    }
+  // Remove previous image before generating a new one
+  if (imageUrl) {
+    URL.revokeObjectURL(imageUrl);
+    setImageUrl(null);
+  }
 
-    try {
-      const response = await fetch("/api/generate-image", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: trimmedPrompt,
-        }),
-      });
+  try {
+    const response = await fetch("/api/generate-image", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        prompt: trimmedPrompt,
+        style,
+        aspectRatio,
+      }),
+    });
 
-      if (!response.ok) {
-        let errorMessage = "Image generation failed.";
+    if (!response.ok) {
+      let errorMessage = "Image generation failed.";
 
-        try {
-          const data = await response.json();
+      try {
+        const data = await response.json();
 
-          if (data?.error) {
-            errorMessage = data.error;
-          }
-        } catch {
-          // Keep default error message
+        if (data?.error) {
+          errorMessage = data.error;
         }
-
-        throw new Error(errorMessage);
+      } catch {
+        // Keep default error message
       }
 
-      const blob = await response.blob();
-
-      if (!blob.type.startsWith("image/")) {
-        throw new Error("The server did not return a valid image.");
-      }
-
-      const generatedUrl = URL.createObjectURL(blob);
-
-      setImageUrl(generatedUrl);
-    } catch (error) {
-      console.error("Image Generation Error:", error);
-
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError("Something went wrong while generating the image.");
-      }
-    } finally {
-      setLoading(false);
+      throw new Error(errorMessage);
     }
-  };
+
+    // Continue with successful response
+    const blob = await response.blob();
+
+    if (!blob || blob.size === 0) {
+      throw new Error("Generated image is empty.");
+    }
+
+    const generatedImageUrl = URL.createObjectURL(blob);
+
+    setImageUrl(generatedImageUrl);
+  } catch (error) {
+    console.error("Image generation error:", error);
+
+    setError(
+      error instanceof Error
+        ? error.message
+        : "Image generation failed. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const downloadImage = () => {
     if (!imageUrl) {
@@ -244,6 +249,73 @@ export default function AIImagePage() {
               disabled:opacity-50
             "
           />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+
+  {/* Style */}
+  <div>
+    <label className="block text-xs text-white/40 mb-2">
+      Style
+    </label>
+
+    <select
+      value={style}
+      onChange={(event) => setStyle(event.target.value)}
+      disabled={loading}
+      className="
+        w-full
+        rounded-xl
+        border
+        border-white/10
+        bg-black/30
+        px-4
+        py-3
+        text-sm
+        text-white
+        outline-none
+        focus:border-white/20
+        disabled:opacity-50
+      "
+    >
+      <option value="Realistic">Realistic</option>
+      <option value="Cinematic">Cinematic</option>
+      <option value="Anime">Anime</option>
+      <option value="3D">3D</option>
+      <option value="Illustration">Illustration</option>
+    </select>
+  </div>
+
+  {/* Aspect Ratio */}
+  <div>
+    <label className="block text-xs text-white/40 mb-2">
+      Aspect Ratio
+    </label>
+
+    <select
+      value={aspectRatio}
+      onChange={(event) => setAspectRatio(event.target.value)}
+      disabled={loading}
+      className="
+        w-full
+        rounded-xl
+        border
+        border-white/10
+        bg-black/30
+        px-4
+        py-3
+        text-sm
+        text-white
+        outline-none
+        focus:border-white/20
+        disabled:opacity-50
+      "
+    >
+      <option value="1:1">1:1 Square</option>
+      <option value="16:9">16:9 Landscape</option>
+      <option value="9:16">9:16 Portrait</option>
+    </select>
+  </div>
+
+</div>
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-4">
             <button
@@ -280,7 +352,7 @@ export default function AIImagePage() {
                     "
                   />
 
-                  Generating Image...
+                             Generating Image...
                 </span>
               ) : (
                 "✨ Generate Image"
@@ -388,7 +460,16 @@ export default function AIImagePage() {
 
         {imageUrl && !loading && (
           <section className="max-w-3xl mx-auto mt-8">
-            <div className="flex items-center justify-between mb-3">
+
+            <div className="
+              flex
+              flex-col
+              sm:flex-row
+              sm:items-center
+              sm:justify-between
+              gap-3
+              mb-3
+            ">
               <div>
                 <h3 className="font-semibold">
                   Generated Image
@@ -399,25 +480,61 @@ export default function AIImagePage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={downloadImage}
-                className="
-                  rounded-xl
-                  bg-white
-                  text-black
-                  px-4
-                  py-2
-                  text-sm
-                  font-medium
-                  transition
-                  hover:scale-[1.02]
-                  active:scale-[0.98]
-                "
-              >
-                ↓ Download
-              </button>
+              {/* ========================================
+                  IMAGE ACTIONS
+              ======================================== */}
+
+              <div className="flex items-center gap-2">
+
+                {/* Regenerate */}
+                <button
+                  type="button"
+                onClick={generateImage}
+                  disabled={loading}
+                  className="
+                    rounded-xl
+                    border
+                    border-white/10
+                    bg-white/5
+                    hover:bg-white/10
+                    px-4
+                    py-2
+                    text-sm
+                    font-medium
+                    transition
+                    disabled:opacity-40
+                    disabled:cursor-not-allowed
+                  "
+                >
+                  🔄 Regenerate
+                </button>
+
+                {/* Download */}
+                <button
+                  type="button"
+                  onClick={downloadImage}
+                  className="
+                    rounded-xl
+                    bg-white
+                    text-black
+                    px-4
+                    py-2
+                    text-sm
+                    font-medium
+                    transition
+                    hover:scale-[1.02]
+                    active:scale-[0.98]
+                  "
+                >
+                  ↓ Download
+                </button>
+
+              </div>
             </div>
+
+            {/* ========================================
+                IMAGE PREVIEW
+            ======================================== */}
 
             <div
               className="
@@ -442,15 +559,75 @@ export default function AIImagePage() {
               />
             </div>
 
-            <div className="mt-4 rounded-xl bg-white/[0.03] border border-white/5 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wider text-white/25 mb-1">
+            {/* ========================================
+                IMAGE DETAILS
+            ======================================== */}
+
+            <div className="
+              mt-4
+              rounded-xl
+              bg-white/[0.03]
+              border
+              border-white/5
+              px-4
+              py-3
+            ">
+
+              <p className="
+                text-[11px]
+                uppercase
+                tracking-wider
+                text-white/25
+                mb-1
+              ">
                 Prompt
               </p>
 
-              <p className="text-sm text-white/60 leading-6 break-words">
+              <p className="
+                text-sm
+                text-white/60
+                leading-6
+                break-words
+              ">
                 {prompt}
               </p>
+
+              <div className="
+                flex
+                flex-wrap
+                gap-2
+                mt-3
+              ">
+
+                <span className="
+                  rounded-lg
+                  bg-white/5
+                  border
+                  border-white/5
+                  px-3
+                  py-1.5
+                  text-[11px]
+                  text-white/40
+                ">
+                  🎨 {style}
+                </span>
+
+                <span className="
+                  rounded-lg
+                  bg-white/5
+                  border
+                  border-white/5
+                  px-3
+                  py-1.5
+                  text-[11px]
+                  text-white/40
+                ">
+                  📐 {aspectRatio}
+                </span>
+
+              </div>
             </div>
+
           </section>
         )}
 

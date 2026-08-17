@@ -111,17 +111,19 @@ export default function Home() {
           </Link>
 
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-left transition hover:-translate-y-2 hover:border-blue-500">
-            <div className="text-4xl">🎨</div>
+          <Link href="/ai-image">
+  <div className="cursor-pointer rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-left transition hover:-translate-y-2 hover:border-blue-500">
+    <div className="text-4xl">🎨</div>
 
-            <h3 className="mt-4 text-xl font-semibold">
-              AI Image Creation
-            </h3>
+    <h3 className="mt-4 text-xl font-semibold">
+      AI Image Creation
+    </h3>
 
-            <p className="mt-3 text-gray-400">
-              Create stunning visuals and creative designs powered by AI.
-            </p>
-          </div>
+    <p className="mt-3 text-gray-400">
+      Create stunning visuals and creative designs powered by AI.
+    </p>
+  </div>
+</Link>
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-left transition hover:-translate-y-2 hover:border-blue-500">
             <div className="text-4xl">✍️</div>
 
